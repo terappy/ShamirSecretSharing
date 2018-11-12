@@ -144,8 +144,8 @@ public class SecretShare {
             int xi = dataList.get(i).getX();
             BigInteger fx = dataList.get(i).getData();
 
-            int numerator = 1; // 分子
-            int denominator = 1; // 分母
+            long numerator = 1; // 分子
+            long denominator = 1; // 分母
 
             // DEBUG
             System.out.print("xi: "+xi+ " || \t");
@@ -198,8 +198,8 @@ public class SecretShare {
             int xi = dataList.get(i).getX();
             BigDecimal fx = new BigDecimal(dataList.get(i).getData());
 
-            int numerator = 1; // 分子
-            int denominator = 1; // 分母
+            long numerator = 1; // 分子
+            long denominator = 1; // 分母
 
             // DEBUG
             System.out.print("xi: "+xi+ " || \t");
