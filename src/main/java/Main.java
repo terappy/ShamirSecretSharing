@@ -9,8 +9,8 @@ import java.util.List;
 
 public class Main {
     public static void main(String[] args){
-        int k = 12;
-        int n = 20;
+        int k = 3;
+        int n = 5;
         String secret = "secret sharing scheme for java";
 
         System.out.println(secret.getBytes());
@@ -51,6 +51,28 @@ public class Main {
                 }
             }
         }
+
+        BigInteger secret2 = BigInteger.valueOf(123);
+        SecretShare ss2 = new SecretShare(k,secret2);
+
+        List<ShareData> dataList2 = ss2.encrypt(n);
+
+        System.out.println(secret2);
+        System.out.println(ss2);
+        System.out.println(dataList2);
+        System.out.println("================");
+
+        printResult(ss2.decryptToNumber(dataList2),secret2);
+
+        System.out.println("================");
+        System.out.println("Shuffled!");
+
+        Collections.shuffle(dataList2);
+        printResult(ss2.decryptToNumber(dataList2),secret2);
+
+
+
+
     }
 
 
@@ -67,4 +89,17 @@ public class Main {
         System.out.println("####################################");
 
     }
+    private static void printResult(BigInteger actual, BigInteger expected){
+        System.out.println("Actual: "+actual+" | Expected: "+expected);
+        System.out.println("####################################");
+        System.out.print("# Result -> \t");
+        if(actual.equals(expected)){
+            System.out.println("Match!!!!!!");
+        }else{
+            System.out.println("MissMatch..........");
+        }
+        System.out.println("####################################");
+
+    }
+
 }

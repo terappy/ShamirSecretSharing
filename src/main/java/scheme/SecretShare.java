@@ -26,6 +26,13 @@ public class SecretShare {
         this.polynomial = generatePolynomial(this.k, secret);
     }
 
+    public SecretShare(final int k, final BigInteger secret){
+        this.k = k;
+        this.modLength = secret.bitLength() + 10;
+        this.p = BigInteger.probablePrime(this.modLength, new Random());
+        this.polynomial = generatePolynomial(this.k, secret);
+    }
+
     public int getK() {
         return k;
     }
@@ -236,6 +243,56 @@ public class SecretShare {
         System.out.println("]");
 
         return new String(res.toByteArray());
+    }
+
+    /***
+     * シェアデータから秘密情報を復元する
+     * @param encryptedDataList
+     * @return 秘密情報
+     */
+    public BigInteger decryptToNumber(final List<ShareData> encryptedDataList){
+        final int dataLength = encryptedDataList.size();
+
+        if(dataLength < this.k){
+            return null;
+        }
+
+        BigDecimal result = BigDecimal.valueOf(0);
+        List<ShareData> dataList = new ArrayList<>(encryptedDataList.subList(0, this.k));
+
+        for(int i=0; i<this.k; i++){
+            int xi = dataList.get(i).getX();
+            BigDecimal fx = new BigDecimal(dataList.get(i).getData());
+
+            long numerator = 1; // 分子
+            long denominator = 1; // 分母
+
+            // DEBUG
+            System.out.print("xi: "+xi+ " || \t");
+
+            for(int l=0; l<this.k; l++){
+                if(l == i){
+                    continue;
+                }
+                int xl = dataList.get(l).getX();
+
+                numerator *= xl;
+                denominator *= xl-xi;
+
+                // DEBUG
+                System.out.print("xl: "+xl+ " | ");
+            }
+
+            result = result.add(fx.multiply(BigDecimal.valueOf(numerator)).divide(BigDecimal.valueOf(denominator),3,BigDecimal.ROUND_HALF_UP));
+
+            // DEBUG
+            System.out.print("\t|| ( " + numerator + " / " + denominator + " ) = " + Float.valueOf(numerator) / denominator + " | ");
+            System.out.println(result);
+
+        }
+
+        return result.setScale(0,BigDecimal.ROUND_UP).toBigInteger().mod(this.p);
+
     }
 
     @Override
