@@ -2,7 +2,6 @@ package scheme;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -28,7 +27,7 @@ public class SecretShare {
 
     public SecretShare(final int k, final BigInteger secret){
         this.k = k;
-        this.modLength = secret.bitLength() + 10;
+        this.modLength = secret.bitLength() * 5;
         this.p = BigInteger.probablePrime(this.modLength, new Random());
         this.polynomial = generatePolynomial(this.k, secret);
     }
@@ -257,18 +256,18 @@ public class SecretShare {
             return null;
         }
 
-        BigDecimal result = BigDecimal.valueOf(0);
         List<ShareData> dataList = new ArrayList<>(encryptedDataList.subList(0, this.k));
+
+        System.out.println(dataList);
+
+        long[] numerators = new long[this.k];
+        long[] denominators = new long[this.k];
 
         for(int i=0; i<this.k; i++){
             int xi = dataList.get(i).getX();
-            BigDecimal fx = new BigDecimal(dataList.get(i).getData());
 
             long numerator = 1; // 分子
             long denominator = 1; // 分母
-
-            // DEBUG
-            System.out.print("xi: "+xi+ " || \t");
 
             for(int l=0; l<this.k; l++){
                 if(l == i){
@@ -279,20 +278,28 @@ public class SecretShare {
                 numerator *= xl;
                 denominator *= xl-xi;
 
-                // DEBUG
-                System.out.print("xl: "+xl+ " | ");
             }
 
-            result = result.add(fx.multiply(BigDecimal.valueOf(numerator)).divide(BigDecimal.valueOf(denominator),3,BigDecimal.ROUND_HALF_UP));
-
-            // DEBUG
-            System.out.print("\t|| ( " + numerator + " / " + denominator + " ) = " + Float.valueOf(numerator) / denominator + " | ");
-            System.out.println(result);
-
+            numerators[i] = numerator;
+            denominators[i] = denominator;
         }
 
-        return result.setScale(0,BigDecimal.ROUND_UP).toBigInteger().mod(this.p);
-
+        BigDecimal result = BigDecimal.valueOf(0);
+        BigDecimal denomSum = BigDecimal.valueOf(1);
+        for(int i=0; i<this.k; i++){
+            BigDecimal fx = new BigDecimal(dataList.get(i).getData());
+            BigDecimal numerSum = BigDecimal.valueOf(1);
+            for(int l=0; l<this.k; l++){
+                if(l==i){
+                    continue;
+                }
+                numerSum = numerSum.multiply(BigDecimal.valueOf(denominators[l]));
+            }
+            denomSum = denomSum.multiply(BigDecimal.valueOf(denominators[i]));
+            result = result.add(fx.multiply(numerSum).multiply(BigDecimal.valueOf(numerators[i])));
+        }
+        System.out.println(result.divide(denomSum,3,BigDecimal.ROUND_HALF_UP));
+        return result.divide(denomSum,0,BigDecimal.ROUND_UP).toBigInteger().mod(this.p);
     }
 
     @Override

@@ -9,8 +9,8 @@ import java.util.List;
 
 public class Main {
     public static void main(String[] args){
-        int k = 3;
-        int n = 5;
+        int k = 5;
+        int n = 10;
         String secret = "secret sharing scheme for java";
 
         System.out.println(secret.getBytes());
@@ -52,7 +52,7 @@ public class Main {
             }
         }
 
-        BigInteger secret2 = BigInteger.valueOf(123);
+        BigInteger secret2 = BigInteger.valueOf(123456);
         SecretShare ss2 = new SecretShare(k,secret2);
 
         List<ShareData> dataList2 = ss2.encrypt(n);
@@ -70,9 +70,6 @@ public class Main {
         Collections.shuffle(dataList2);
         printResult(ss2.decryptToNumber(dataList2),secret2);
 
-
-
-
     }
 
 
@@ -86,6 +83,7 @@ public class Main {
         }else{
             System.out.println("MissMatch..........");
         }
+
         System.out.println("####################################");
 
     }
@@ -99,7 +97,5 @@ public class Main {
             System.out.println("MissMatch..........");
         }
         System.out.println("####################################");
-
     }
-
 }
