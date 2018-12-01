@@ -1,58 +1,77 @@
 import scheme.SecretShare;
 import scheme.ShareData;
 
-import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 public class Main {
-    public static void main(String[] args){
-        int k = 5;
-        int n = 10;
-        String secret = "secret sharing scheme for java";
+    static int missCount = 0;
+    static int missCountForNum = 0;
 
-        System.out.println(secret.getBytes());
+    public static void main(String[] args){
+        int k = 4;
+        int n = 6;
+        String secret = "secret sharing";
+
+        // secretを出力
+        System.out.println(secret);
+        System.out.println(new BigInteger(secret.getBytes()));
+
+        System.out.print("[ ");
+        for(byte b:new BigInteger(secret.getBytes()).toByteArray()){
+            System.out.print(b+" ");
+        }
+        System.out.println("]");
+
+
         SecretShare ss = new SecretShare(k,secret);
 
         List<ShareData> dataList = ss.encrypt(n);
 
-        System.out.println(secret);
-        System.out.println(new BigInteger(secret.getBytes()));
         System.out.println(ss);
         System.out.println(dataList);
         System.out.println("================");
 
-        printResult(ss.decrypt_old(dataList),secret);
-        System.out.println("---");
-        printResult(ss.decrypt(dataList),secret);
-
+        printResult(ss.decryptToString(dataList),secret);
 
         System.out.println("================");
         System.out.println("Shuffled!");
 
         Collections.shuffle(dataList);
-        printResult(ss.decrypt_old(dataList),secret);
-        System.out.println("---");
-        printResult(ss.decrypt(dataList),secret);
+        printResult(ss.decryptToString(dataList),secret);
 
+        System.out.println("================");
+        System.out.println("================");
+        System.out.println("================");
 
         if(k==2){
             for(int i=0; i<n; i++){
                 for (int j=i+1; j<n; j++){
                     List<ShareData> targetPair = Arrays.asList(dataList.get(i), dataList.get(j));
                     System.out.println(targetPair);
-                    printResult(ss.decrypt_old(targetPair), secret);
-                    System.out.println("---");
-                    printResult(ss.decrypt(targetPair),secret);
+                    printResult(ss.decryptToString(targetPair),secret);
                     System.out.println("================");
 
                 }
             }
         }
 
-        BigInteger secret2 = BigInteger.valueOf(123456);
+        System.out.println("================");
+        System.out.println("================");
+
+        if(missCount == 0){
+            System.out.println("ALL OK!!");
+        }else{
+            System.out.println("failed : " + missCount);
+        }
+
+
+        System.out.println("-------------------------------------------------------");
+
+
+        BigInteger secret2 = BigInteger.valueOf(1234567890);
         SecretShare ss2 = new SecretShare(k,secret2);
 
         List<ShareData> dataList2 = ss2.encrypt(n);
@@ -62,19 +81,27 @@ public class Main {
         System.out.println(dataList2);
         System.out.println("================");
 
-        printResult(ss2.decryptToNumber(dataList2),secret2);
+        printResult(ss2.decrypt(dataList2),secret2);
 
         System.out.println("================");
         System.out.println("Shuffled!");
 
         Collections.shuffle(dataList2);
-        printResult(ss2.decryptToNumber(dataList2),secret2);
+        printResult(ss2.decrypt(dataList2),secret2);
+
+        if(missCountForNum == 0){
+            System.out.println("ALL OK!!");
+        }else{
+            System.out.println("failed : " + missCountForNum);
+        }
+
 
     }
 
 
 
     private static void printResult(String actual, String expected){
+        System.out.println(new BigInteger(actual.getBytes()));
         System.out.println("Actual: "+actual+" | Expected: "+expected);
         System.out.println("####################################");
         System.out.print("# Result -> \t");
@@ -82,6 +109,7 @@ public class Main {
             System.out.println("Match!!!!!!");
         }else{
             System.out.println("MissMatch..........");
+            missCount++;
         }
 
         System.out.println("####################################");
@@ -95,6 +123,7 @@ public class Main {
             System.out.println("Match!!!!!!");
         }else{
             System.out.println("MissMatch..........");
+            missCountForNum++;
         }
         System.out.println("####################################");
     }

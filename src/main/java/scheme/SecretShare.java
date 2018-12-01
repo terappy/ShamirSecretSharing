@@ -1,6 +1,5 @@
 package scheme;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,24 +12,27 @@ import java.util.Random;
  * (k,n) Threshold Scheme
  */
 public class SecretShare {
-    private final int k;
-    private final BigInteger p;
-    private final int modLength;
-    private BigInteger[] polynomial;
+    private final int k;                // しきい値
+    private final BigInteger p;         // 素数
+    private final int modLength;        // ビット長
+    private BigInteger[] polynomial;    // 多項式の係数群
 
-    public SecretShare(final int k, final String secret){
-        this.k = k;
-        this.modLength = new BigInteger(secret.getBytes()).bitLength() + 10;
-        this.p = BigInteger.probablePrime(this.modLength, new Random());
-        this.polynomial = generatePolynomial(this.k, secret);
-    }
 
     public SecretShare(final int k, final BigInteger secret){
         this.k = k;
-        this.modLength = secret.bitLength() * 5;
-        this.p = BigInteger.probablePrime(this.modLength, new Random());
+        this.modLength = secret.bitLength();
+        this.p = getPrimeNumber(secret);
         this.polynomial = generatePolynomial(this.k, secret);
     }
+
+    public SecretShare(final int k, final int secret){
+        this(k, BigInteger.valueOf(secret));
+    }
+
+    public SecretShare(final int k, final String secret){
+        this(k, new BigInteger(secret.getBytes()));
+    }
+
 
     public int getK() {
         return k;
@@ -54,7 +56,7 @@ public class SecretShare {
      * @param secret 秘密情報
      * @return
      */
-    private BigInteger[] generatePolynomial(int k, BigInteger secret){
+    private BigInteger[] generatePolynomial(final int k, final BigInteger secret){
         BigInteger[] polynomial = new BigInteger[k];
         polynomial[0] = secret;
         for(int i=1; i<k; i++){
@@ -63,14 +65,13 @@ public class SecretShare {
         return polynomial;
     }
 
-    /***
-     * 多項式生成<br/>f(x)= c + a_1 * x_1 ... a_(k-1) * x^(k-1) mod p<br/>の係数部分を生成する
-     * @param k しきい値
-     * @param secret 秘密情報
-     * @return
-     */
-    private BigInteger[] generatePolynomial(final int k, final String secret){
-        return generatePolynomial(k, new BigInteger(secret.getBytes()));
+    private BigInteger getPrimeNumber(final BigInteger secret){
+        BigInteger r;
+        do{
+            r = BigInteger.probablePrime(secret.bitLength(), new Random());
+        }while(r.compareTo(BigInteger.ZERO) <= 0 || r.compareTo(secret) <= 0);
+
+        return r;
     }
 
     /***
@@ -87,7 +88,6 @@ public class SecretShare {
         return r;
     }
 
-
     /***
      * シェアデータを生成する<br/>f(x)= c + a_1 * x_1 ... a_(k-1) * x^(k-1) mod p
      * @param shareNumber xの値
@@ -98,13 +98,13 @@ public class SecretShare {
             return null;
         }
 
-        int polynomialLength = this.polynomial.length;
-        BigInteger x = BigInteger.valueOf(shareNumber);
+        final int polynomialLength = this.polynomial.length;
+        final BigInteger x = BigInteger.valueOf(shareNumber);
         BigInteger y = BigInteger.valueOf(0);
 
         for(int i=0; i<polynomialLength; i++){
             // a_i * x^(i) を計算し結果を加算する
-            y = y.add(polynomial[i].multiply(x.pow(i)));
+            y = y.add(polynomial[i].multiply(x.pow(i)).mod(this.p)).mod(this.p);
         }
 
         return new ShareData(shareNumber, y.mod(p));
@@ -117,13 +117,20 @@ public class SecretShare {
         this.polynomial = null;
     }
 
+    /***
+     * 秘密情報を秘密分散する
+     * @param n
+     * @return
+     */
     public List<ShareData> encrypt(final int n){
         if(n < this.k){
             return null;
         }
         List<ShareData> encryptedDataList = new ArrayList<>();
         for(int i=0; i<n; i++){
-            encryptedDataList.add(generateShareData((i+1)));
+//            final int x = calcChebyshevNode(i+1);
+            final int x = (i+1);
+            encryptedDataList.add(generateShareData(x));
         }
         return encryptedDataList;
     }
@@ -132,9 +139,8 @@ public class SecretShare {
      * シェアデータから秘密情報を復元する
      * @param encryptedDataList
      * @return 秘密情報
-     * @deprecated 割り算の時に誤差が生じてしまうため、別のメソッドに置き換えられました {@link #decrypt(List)}
      */
-    public String decrypt_old(final List<ShareData> encryptedDataList){
+    public BigInteger decrypt(final List<ShareData> encryptedDataList){
         final int dataLength = encryptedDataList.size();
 
         if(dataLength < this.k){
@@ -142,164 +148,40 @@ public class SecretShare {
         }
 
         BigInteger result = BigInteger.valueOf(0);
-
         List<ShareData> dataList = new ArrayList<>(encryptedDataList.subList(0, this.k));
-        int interpolation = 2*3*5*7*11*13*17*19;
 
         for(int i=0; i<this.k; i++){
-            int xi = dataList.get(i).getX();
-            BigInteger fx = dataList.get(i).getData();
+            final int xi = dataList.get(i).getX();
+            final BigInteger fx = dataList.get(i).getData();
 
-            long numerator = 1; // 分子
-            long denominator = 1; // 分母
-
-            // DEBUG
-            System.out.print("xi: "+xi+ " || \t");
+            BigInteger numerator = BigInteger.ONE; // 分子
+            BigInteger denominator = BigInteger.ONE; // 分母
 
             for(int l=0; l<this.k; l++){
                 if(l == i){
                     continue;
                 }
-                int xl = dataList.get(l).getX();
+                final int xl = dataList.get(l).getX();
 
-                numerator *= xl;
-                denominator *= xl-xi;
-                // DEBUG
-                System.out.print("xl: "+xl+ " | ");
+                numerator = numerator.multiply(BigInteger.valueOf(xl).negate()).mod(this.p);
+                denominator = denominator.multiply(BigInteger.valueOf(xi-xl)).mod(this.p);
             }
 
-
-            result = result.add(fx.multiply(BigInteger.valueOf(numerator)).multiply(BigInteger.valueOf(interpolation)).divide(BigInteger.valueOf(denominator)));
-
-            // DEBUG
-            System.out.print("\t|| ( "+numerator+ " / "+denominator+ " ) = "+ Float.valueOf(numerator) / denominator + " | ");
-            System.out.println(result);
+            result = result.add(fx.multiply(numerator).mod(this.p).multiply(denominator.modInverse(this.p)).mod(this.p)).mod(this.p);
         }
 
-        result = result.divide(BigInteger.valueOf(interpolation)).mod(p);
+        System.out.println(result);
 
-        // DEBUG
-        System.out.println("resultInteger: "+result);
-
-        return new String(result.toByteArray());
-    }
-
-
-    /***
-     * シェアデータから秘密情報を復元する
-     * @param encryptedDataList
-     * @return 秘密情報
-     */
-    public String decrypt(final List<ShareData> encryptedDataList){
-        final int dataLength = encryptedDataList.size();
-
-        if(dataLength < this.k){
-            return null;
-        }
-
-        BigDecimal result = BigDecimal.valueOf(0);
-        List<ShareData> dataList = new ArrayList<>(encryptedDataList.subList(0, this.k));
-
-        for(int i=0; i<this.k; i++){
-            int xi = dataList.get(i).getX();
-            BigDecimal fx = new BigDecimal(dataList.get(i).getData());
-
-            long numerator = 1; // 分子
-            long denominator = 1; // 分母
-
-            // DEBUG
-            System.out.print("xi: "+xi+ " || \t");
-
-            for(int l=0; l<this.k; l++){
-                if(l == i){
-                    continue;
-                }
-                int xl = dataList.get(l).getX();
-
-                numerator *= xl;
-                denominator *= xl-xi;
-
-                // DEBUG
-                System.out.print("xl: "+xl+ " | ");
-            }
-
-            result = result.add(fx.multiply(BigDecimal.valueOf(numerator)).divide(BigDecimal.valueOf(denominator),3,BigDecimal.ROUND_HALF_UP));
-
-            // DEBUG
-            System.out.print("\t|| ( " + numerator + " / " + denominator + " ) = " + Float.valueOf(numerator) / denominator + " | ");
-            System.out.println(result);
-
-        }
-
-        BigInteger res = result.setScale(0,BigDecimal.ROUND_UP).toBigInteger().mod(this.p);
-
-        // DEBUG
-        System.out.println("resultInteger: "+res);
-        System.out.print("[ ");
-        for(byte b:res.toByteArray()){
-            System.out.print(b+" ");
-        }
-        System.out.println("]");
-
-        return new String(res.toByteArray());
+        return result;
     }
 
     /***
-     * シェアデータから秘密情報を復元する
+     * シェアデータから秘密情報を復元し、文字列に変換する
      * @param encryptedDataList
      * @return 秘密情報
      */
-    public BigInteger decryptToNumber(final List<ShareData> encryptedDataList){
-        final int dataLength = encryptedDataList.size();
-
-        if(dataLength < this.k){
-            return null;
-        }
-
-        List<ShareData> dataList = new ArrayList<>(encryptedDataList.subList(0, this.k));
-
-        System.out.println(dataList);
-
-        long[] numerators = new long[this.k];
-        long[] denominators = new long[this.k];
-
-        for(int i=0; i<this.k; i++){
-            int xi = dataList.get(i).getX();
-
-            long numerator = 1; // 分子
-            long denominator = 1; // 分母
-
-            for(int l=0; l<this.k; l++){
-                if(l == i){
-                    continue;
-                }
-                int xl = dataList.get(l).getX();
-
-                numerator *= xl;
-                denominator *= xl-xi;
-
-            }
-
-            numerators[i] = numerator;
-            denominators[i] = denominator;
-        }
-
-        BigDecimal result = BigDecimal.valueOf(0);
-        BigDecimal denomSum = BigDecimal.valueOf(1);
-        for(int i=0; i<this.k; i++){
-            BigDecimal fx = new BigDecimal(dataList.get(i).getData());
-            BigDecimal numerSum = BigDecimal.valueOf(1);
-            for(int l=0; l<this.k; l++){
-                if(l==i){
-                    continue;
-                }
-                numerSum = numerSum.multiply(BigDecimal.valueOf(denominators[l]));
-            }
-            denomSum = denomSum.multiply(BigDecimal.valueOf(denominators[i]));
-            result = result.add(fx.multiply(numerSum).multiply(BigDecimal.valueOf(numerators[i])));
-        }
-        System.out.println(result.divide(denomSum,3,BigDecimal.ROUND_HALF_UP));
-        return result.divide(denomSum,0,BigDecimal.ROUND_UP).toBigInteger().mod(this.p);
+    public String decryptToString(final List<ShareData> encryptedDataList){
+        return new String(decrypt(encryptedDataList).toByteArray());
     }
 
     @Override

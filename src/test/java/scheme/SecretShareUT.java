@@ -26,12 +26,12 @@ public class SecretShareUT {
 
     @Test
     public void testGeneratePolynomial(){
-        Method method = null;
+        Method method;
         try {
-            method = SecretShare.class.getDeclaredMethod("generatePolynomial", int.class, String.class);
+            method = SecretShare.class.getDeclaredMethod("generatePolynomial", int.class, BigInteger.class);
             method.setAccessible(true);
             SecretShare secretShare = new SecretShare(K,SECRET);
-            BigInteger[] actual = (BigInteger[])method.invoke(secretShare, K,SECRET);
+            BigInteger[] actual = (BigInteger[])method.invoke(secretShare, K, SECRET_INTEGER);
             assertThat(actual[0], is(SECRET_INTEGER));
             assertThat(actual.length, is(2));
         } catch (NoSuchMethodException e) {
@@ -77,7 +77,7 @@ public class SecretShareUT {
         SecretShare secretShare = new SecretShare(K, SECRET);
         List<ShareData> encryptedData = secretShare.encrypt(N);
 
-        assertThat(secretShare.decrypt(encryptedData), is(SECRET));
+        assertThat(secretShare.decryptToString(encryptedData), is(SECRET));
     }
 
 }
