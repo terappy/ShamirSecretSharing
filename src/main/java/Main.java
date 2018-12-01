@@ -11,8 +11,8 @@ public class Main {
     static int missCountForNum = 0;
 
     public static void main(String[] args){
-        int k = 4;
-        int n = 6;
+        int k = 10;
+        int n = 20;
         String secret = "secret sharing";
 
         // secretを出力

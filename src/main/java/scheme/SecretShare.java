@@ -65,6 +65,11 @@ public class SecretShare {
         return polynomial;
     }
 
+    /***
+     * secretよりも大きなランダムな素数を生成
+     * @param secret
+     * @return
+     */
     private BigInteger getPrimeNumber(final BigInteger secret){
         BigInteger r;
         do{
@@ -128,7 +133,6 @@ public class SecretShare {
         }
         List<ShareData> encryptedDataList = new ArrayList<>();
         for(int i=0; i<n; i++){
-//            final int x = calcChebyshevNode(i+1);
             final int x = (i+1);
             encryptedDataList.add(generateShareData(x));
         }
@@ -169,8 +173,6 @@ public class SecretShare {
 
             result = result.add(fx.multiply(numerator).mod(this.p).multiply(denominator.modInverse(this.p)).mod(this.p)).mod(this.p);
         }
-
-        System.out.println(result);
 
         return result;
     }
